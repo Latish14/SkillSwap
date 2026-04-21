@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkillSwap — Exchange Skills, Grow Together</title>
+
+  <!-- Firebase SDK (v9 compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap"
+    rel="stylesheet" />
+
+  <style>
+    /* ─── CSS Variables ────────────────────────────────────────── */
+    :root {
+      --bg: #0d0f14;
+      --surface: #161921;
+      --surface2: #1e2230;
+      --border: #2a2f40;
+      --teal: #2dd4bf;
+      --teal-dim: rgba(45, 212, 191, 0.15);
+      --amber: #fbbf24;
+      --amber-dim: rgba(251, 191, 36, 0.12);
+      --text: #e8eaf0;
+      --muted: #7a8099;
+      --danger: #f87171;
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --radius: 10px;
+      --radius-lg: 16px;
+    }
+
+    /* ─── Reset & Base ─────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    button {
+      cursor: pointer;
+      font-family: var(--font-mono);
+    }
+
+    input,
+    textarea,
+    select {
+      font-family: var(--font-mono);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      font-size: 13px;
+      width: 100%;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: var(--teal);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 64px;
+    }
+
+    /* ─── Layout Shell ─────────────────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ─── Header / Nav ─────────────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--teal);
+      letter-spacing: -0.5px;
+    }
+
+    .logo span {
+      color: var(--amber);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .nav-tab {
+      background: none;
+      border: none;
+      color: var(--muted);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+
+    .nav-tab:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .nav-tab.active {
+      background: var(--teal-dim);
+      color: var(--teal);
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px 4px 4px;
+      font-size: 12px;
+    }
+
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--teal-dim);
+      border: 1px solid var(--teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 11px;
+      color: var(--teal);
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    #logout-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    #logout-btn:hover {
+      color: var(--danger);
+    }
+
+    /* ─── Page Sections ────────────────────────────────────────── */
+    .page {
+      display: none;
+      padding: 32px 24px;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    /* ─── Login Page ───────────────────────────────────────────── */
+    .login-center {
+      min-height: calc(100vh - 56px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      width: 100%;
+      max-width: 440px;
+    }
+
+    .login-card h1 {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .login-card .tagline {
+      color: var(--muted);
+      margin-bottom: 28px;
+      font-size: 13px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--teal);
+      color: #0d0f14;
+      border: none;
+      border-radius: var(--radius);
+      padding: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      font-family: var(--font-display);
+      transition: opacity 0.15s, transform 0.1s;
+      margin-top: 8px;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    /* ─── Skill Tags ───────────────────────────────────────────── */
+    .tag-input-wrap {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tag-input-wrap input {
+      flex: 1;
+    }
+
+    .tag-add-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--teal);
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      transition: background 0.15s;
+    }
+
+    .tag-add-btn:hover {
+      background: var(--teal-dim);
+    }
+
+    .tags-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+
+    .tag.teach {
+      background: var(--teal-dim);
+      color: var(--teal);
+      border: 1px solid rgba(45, 212, 191, 0.3);
+    }
+
+    .tag.learn {
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid rgba(251, 191, 36, 0.25);
+    }
+
+    .tag-remove {
+      background: none;
+      border: none;
+      padding: 0;
+      opacity: 0.6;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      color: inherit;
+    }
+
+    .tag-remove:hover {
+      opacity: 1;
+    }
+
+    /* ─── Section Heading ──────────────────────────────────────── */
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .section-head h2 {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .search-bar input {
+      max-width: 280px;
+    }
+
+    /* ─── User Cards ───────────────────────────────────────────── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .user-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+
+    .user-card:hover {
+      border-color: var(--teal);
+      transform: translateY(-2px);
+    }
+
+    .user-card.match-highlight {
+      border-color: var(--amber);
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .card-head .avatar {
+      width: 38px;
+      height: 38px;
+      font-size: 14px;
+    }
+
+    .card-name {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .card-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .card-section-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      margin-top: 12px;
+    }
+
+    .card-actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-card {
+      flex: 1;
+      padding: 8px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      transition: all 0.15s;
+    }
+
+    .btn-card.primary {
+      border-color: var(--teal);
+      color: var(--teal);
+      background: var(--teal-dim);
+    }
+
+    .btn-card:hover {
+      opacity: 0.8;
+    }
+
+    .match-badge {
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: 12px;
+      font-size: 10px;
+      padding: 2px 8px;
+      margin-left: auto;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--muted);
+    }
+
+    .empty-state .icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+    }
+
+    /* ─── Chat Panel ───────────────────────────────────────────── */
+    .chat-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 16px;
+      height: calc(100vh - 56px - 64px);
+      min-height: 400px;
+    }
+
+    .chat-list {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-list-head {
+      padding: 14px 16px;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .chat-person {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    .chat-person:hover {
+      background: var(--surface2);
+    }
+
+    .chat-person.active {
+      background: var(--teal-dim);
+    }
+
+    .chat-person-name {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .chat-person-preview {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 130px;
+    }
+
+    .online-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+
+    .chat-window {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-window-head {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chat-window-head .name {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .message {
+      max-width: 70%;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .message.mine {
+      align-self: flex-end;
+      background: var(--teal-dim);
+      border: 1px solid rgba(45, 212, 191, 0.25);
+      color: var(--text);
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.theirs {
+      align-self: flex-start;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    .message .msg-sender {
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .message .msg-time {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    .chat-input-bar {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+    }
+
+    .chat-input-bar input {
+      flex: 1;
+    }
+
+    .btn-send {
+      background: var(--teal);
+      border: none;
+      color: #0d0f14;
+      padding: 10px 18px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 13px;
+      transition: opacity 0.15s;
+    }
+
+    .btn-send:hover {
+      opacity: 0.85;
+    }
+
+    .chat-placeholder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      gap: 10px;
+    }
+
+    .chat-placeholder .icon {
+      font-size: 32px;
+    }
+
+    /* ─── Profile Page ─────────────────────────────────────────── */
+    .profile-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      max-width: 520px;
+    }
+
+    .profile-head {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .profile-head .avatar {
+      width: 52px;
+      height: 52px;
+      font-size: 18px;
+    }
+
+    .profile-head h2 {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .profile-head p {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
+    }
+
+    /* ─── Toast Notification ───────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface2);
+      border: 1px solid var(--teal);
+      color: var(--teal);
+      padding: 10px 18px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.25s;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ─── Loading spinner ──────────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ─── Responsive ───────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .chat-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: 200px 1fr;
+      }
+
+      .nav-tab {
+        padding: 6px 8px;
+        font-size: 12px;
+      }
+
+      .logo {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+
+    <!-- ═══════════════════════════════════
+       LOGIN PAGE (shown when logged out)
+  ═══════════════════════════════════════ -->
+    <div id="login-page">
+      <div class="login-center">
+        <div class="login-card">
+          <h1>Skill<span>Swap</span></h1>
+          <p class="tagline">Exchange skills with your community. Learn. Teach. Grow.</p>
+
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input id="reg-username" type="text" placeholder="e.g. latish_dev" maxlength="24" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Skills I can teach</label>
+            <div class="tag-input-wrap">
+              <input id="teach-input" type="text" placeholder="e.g. Python, UI Design…" />
+              <button class="tag-add-btn" onclick="addTag('teach')">+</button>
+            </div>
+            <div class="tags-list" id="teach-tags"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Skills I want to learn</label>
+            <div class="tag-input-wrap">
+              <input id="learn-input" type="text" placeholder="e.g. React, Music…" />
+              <button class="tag-add-btn" onclick="addTag('learn')">+</button>
+            </div>
+            <div class="tags-list" id="learn-tags"></div>
+          </div>
+          <button class="btn-primary" onclick="register()">Join Community →</button>
+          <p class="hint">Already registered? Enter your username and click Join.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════
+       MAIN APP (shown when logged in)
+  ═══════════════════════════════════════ -->
+    <div id="main-app" style="display:none; flex-direction:column; min-height:100vh;">
+
+      <!-- Header -->
+      <header>
+        <div class="logo">Skill<span>Swap</span></div>
+        <nav class="nav-tabs">
+          <button class="nav-tab active" onclick="showPage('explore')" data-page="explore">Explore</button>
+          <button class="nav-tab" onclick="showPage('matches')" data-page="matches">Matches</button>
+          <button class="nav-tab" onclick="showPage('chat')" data-page="chat">Chat</button>
+          <button class="nav-tab" onclick="showPage('profile')" data-page="profile">Profile</button>
+        </nav>
+        <div class="user-pill">
+          <div class="avatar" id="header-avatar">?</div>
+          <span id="header-username">—</span>
+          <button id="logout-btn" onclick="logout()">⊗</button>
+        </div>
+      </header>
+
+      <!-- ── Explore Page ────────────────── -->
+      <div id="explore-page" class="page active">
+        <div class="section-head">
+          <h2>All Members</h2>
+          <div class="spinner" id="explore-spinner"></div>
+        </div>
+        <div class="search-bar">
+          <input id="search-input" type="text" placeholder="Search by name or skill…" oninput="renderExplore()" />
+        </div>
+        <div class="cards-grid" id="explore-grid">
+          <div class="empty-state">
+            <div class="icon">⏳</div>
+            <p>Loading members…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Matches Page ────────────────── -->
+      <div id="matches-page" class="page">
+        <div class="section-head">
+          <h2>Your Skill Matches</h2>
+        </div>
+        <p style="color: var(--muted); margin-bottom: 20px; font-size: 13px;">
+          Members who can teach what you want to learn, and want to learn what you can teach.
+        </p>
+        <div class="cards-grid" id="matches-grid">
+          <div class="empty-state">
+            <div class="icon">🔎</div>
+            <p>No matches yet. Add more skills!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Chat Page ───────────────────── -->
+      <div id="chat-page" class="page">
+        <div class="chat-layout">
+          <!-- Left: conversation list -->
+          <div class="chat-list">
+            <div class="chat-list-head">Messages</div>
+            <div id="chat-people-list"></div>
+          </div>
+          <!-- Right: message window -->
+          <div class="chat-window" id="chat-window">
+            <div class="chat-placeholder">
+              <div class="icon">💬</div>
+              <p>Select a person to start chatting</p>
+              <p style="font-size:12px; color:var(--muted);">Go to Matches and hit "Chat" to open a conversation</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Profile Page ────────────────── -->
+      <div id="profile-page" class="page">
+        <div class="profile-card">
+          <div class="profile-head">
+            <div class="avatar" id="profile-avatar" style="width:52px;height:52px;font-size:18px;">?</div>
+            <div>
+              <h2 id="profile-username">—</h2>
+              <p>Member since today</p>
+            </div>
+          </div>
+          <hr class="divider" />
+          <div class="form-group">
+            <label class="form-label">Skills I can teach</label>
+            <div class="tag-input-wrap">
+              <input id="profile-teach-input" type="text" placeholder="Add a skill…" />
+              <button class="tag-add-btn" onclick="profileAddTag('teach')">+</button>
+            </div>
+            <div class="tags-list" id="profile-teach-tags"></div>
+          </div>
+          <div class="form-group" style="margin-top:16px;">
+            <label class="form-label">Skills I want to learn</label>
+            <div class="tag-input-wrap">
+              <input id="profile-learn-input" type="text" placeholder="Add a skill…" />
+              <button class="tag-add-btn" onclick="profileAddTag('learn')">+</button>
+            </div>
+            <div class="tags-list" id="profile-learn-tags"></div>
+          </div>
+          <button class="btn-primary" style="margin-top:20px;" onclick="saveProfile()">Save Changes</button>
+        </div>
+      </div>
+
+    </div><!-- /main-app -->
+
+  </div><!-- /app -->
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════════ -->
+  <script>
+    // ─── FIREBASE CONFIGURATION ────────────────────────────────────
+    // ⚠️  Replace these values with YOUR Firebase project config.
+    //     Steps: https://firebase.google.com → New Project → Web App
+    //     Copy the firebaseConfig object from Project Settings.
+    const firebaseConfig = {
+      apiKey: "AIzaSyCo7FFBPaxMDmcVokCPeQV5FwTRihw23PU",
+      authDomain: "skillswap-16b4a.firebaseapp.com",
+      projectId: "skillswap-16b4a",
+      storageBucket: "skillswap-16b4a.firebasestorage.app",
+      messagingSenderId: "184429436567",
+      appId: "1:184429436567:web:51ab3e94b6593e4f9653d2",
+      measurementId: "G-6BVJDH94DR"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ─── STATE ────────────────────────────────────────────────────
+    let currentUser = null;         // { id, username, teach[], learn[] }
+    let allUsers = [];              // all users from Firestore
+    let activeChatUser = null;      // currently open chat partner
+    let chatUnsubscribe = null;     // Firestore listener cleanup
+    let usersUnsubscribe = null;    // Firestore users listener cleanup
+
+    // Temporary tag arrays for registration form
+    const regTags = { teach: [], learn: [] };
+
+    // ─── HELPERS ──────────────────────────────────────────────────
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    function getInitials(name) {
+      return name.slice(0, 2).toUpperCase();
+    }
+
+    function timeAgo(ts) {
+      if (!ts) return '';
+      const diff = Date.now() - ts;
+      if (diff < 60000) return 'just now';
+      if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+      return Math.floor(diff / 3600000) + 'h ago';
+    }
+
+    // ─── TAG MANAGEMENT (Registration) ────────────────────────────
+    function addTag(type) {
+      const input = document.getElementById(type === 'teach' ? 'teach-input' : 'learn-input');
+      const val = input.value.trim();
+      if (!val) return;
+      if (!regTags[type].includes(val)) {
+        regTags[type].push(val);
+        renderRegTags(type);
+      }
+      input.value = '';
+    }
+
+    function removeRegTag(type, tag) {
+      regTags[type] = regTags[type].filter(t => t !== tag);
+      renderRegTags(type);
+    }
+
+    function renderRegTags(type) {
+      const container = document.getElementById(type + '-tags');
+      container.innerHTML = regTags[type].map(tag =>
+        `<span class="tag ${type}">${tag}
+       <button class="tag-remove" onclick="removeRegTag('${type}','${tag}')">×</button>
+     </span>`
+      ).join('');
+    }
+
+    // Enter key support for tag inputs
+    document.getElementById('teach-input').addEventListener('keydown', e => { if (e.key === 'Enter') addTag('teach'); });
+    document.getElementById('learn-input').addEventListener('keydown', e => { if (e.key === 'Enter') addTag('learn'); });
+
+    // ─── AUTHENTICATION (username-based, no password) ─────────────
+    async function register() {
+      const username = document.getElementById('reg-username').value.trim().toLowerCase();
+      if (!username) return toast('Please enter a username');
+
+      // Check if user already exists
+      const snapshot = await db.collection('users').where('username', '==', username).get();
+
+      let userId, userData;
+      if (!snapshot.empty) {
+        // Existing user — log them back in
+        userId = snapshot.docs[0].id;
+        userData = snapshot.docs[0].data();
+        toast(`Welcome back, ${userData.username}!`);
+      } else {
+        // New user — create profile
+        userData = {
+          username,
+          teach: regTags.teach,
+          learn: regTags.learn,
+          createdAt: Date.now(),
+          lastSeen: Date.now()
+        };
+        const ref = await db.collection('users').add(userData);
+        userId = ref.id;
+        toast(`Welcome aboard, ${username}!`);
+      }
+
+      currentUser = { id: userId, ...userData };
+      localStorage.setItem('skillswap_uid', userId);
+      showApp();
+    }
+
+    async function restoreSession() {
+      const uid = localStorage.getItem('skillswap_uid');
+      if (!uid) return;
+      const doc = await db.collection('users').doc(uid).get();
+      if (doc.exists) {
+        currentUser = { id: uid, ...doc.data() };
+        showApp();
+      }
+    }
+
+    function logout() {
+      if (usersUnsubscribe) usersUnsubscribe();
+      if (chatUnsubscribe) chatUnsubscribe();
+      currentUser = null;
+      localStorage.removeItem('skillswap_uid');
+      document.getElementById('login-page').style.display = '';
+      document.getElementById('main-app').style.display = 'none';
+    }
+
+    // ─── SHOW MAIN APP ────────────────────────────────────────────
+    function showApp() {
+      document.getElementById('login-page').style.display = 'none';
+      document.getElementById('main-app').style.display = 'flex';
+
+      // Set header info
+      document.getElementById('header-username').textContent = currentUser.username;
+      document.getElementById('header-avatar').textContent = getInitials(currentUser.username);
+
+      // Update lastSeen
+      db.collection('users').doc(currentUser.id).update({ lastSeen: Date.now() });
+
+      // Populate profile page
+      renderProfile();
+
+      // Subscribe to all users (real-time)
+      subscribeToUsers();
+
+      showPage('explore');
+    }
+
+    // ─── REAL-TIME USERS LISTENER ─────────────────────────────────
+    function subscribeToUsers() {
+      if (usersUnsubscribe) usersUnsubscribe();
+      usersUnsubscribe = db.collection('users').onSnapshot(snapshot => {
+        allUsers = snapshot.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(u => u.id !== currentUser.id);   // exclude self
+        renderExplore();
+        renderMatches();
+        renderChatList();
+        document.getElementById('explore-spinner').style.display = 'none';
+      });
+    }
+
+    // ─── PAGE NAVIGATION ──────────────────────────────────────────
+    function showPage(name) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(name + '-page').classList.add('active');
+      document.querySelector(`[data-page="${name}"]`).classList.add('active');
+
+      if (name === 'matches') renderMatches();
+      if (name === 'chat') renderChatList();
+    }
+
+    // ─── MATCHING LOGIC ───────────────────────────────────────────
+    // A match: other.teach ∩ currentUser.learn  AND  other.learn ∩ currentUser.teach
+    function getMatchScore(other) {
+      const myTeach = currentUser.teach || [];
+      const myLearn = currentUser.learn || [];
+      const theirTeach = other.teach || [];
+      const theirLearn = other.learn || [];
+
+      // Normalize for case-insensitive comparison
+      const norm = arr => arr.map(s => s.toLowerCase());
+      const theyTeachWhatIWant = norm(theirTeach).filter(s => norm(myLearn).includes(s));
+      const theyWantWhatITeach = norm(theirLearn).filter(s => norm(myTeach).includes(s));
+
+      return theyTeachWhatIWant.length + theyWantWhatITeach.length;
+    }
+
+    // ─── RENDER EXPLORE ───────────────────────────────────────────
+    function renderExplore() {
+      const query = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+      const grid = document.getElementById('explore-grid');
+
+      let users = [...allUsers];
+
+      if (query) {
+        users = users.filter(u =>
+          u.username.toLowerCase().includes(query) ||
+          (u.teach || []).some(s => s.toLowerCase().includes(query)) ||
+          (u.learn || []).some(s => s.toLowerCase().includes(query))
+        );
+      }
+
+      if (!users.length) {
+        grid.innerHTML = `<div class="empty-state"><div class="icon">🌐</div><p>No members found.</p></div>`;
+        return;
+      }
+
+      grid.innerHTML = users.map(u => buildUserCard(u, false)).join('');
+    }
+
+    // ─── RENDER MATCHES ───────────────────────────────────────────
+    function renderMatches() {
+      const grid = document.getElementById('matches-grid');
+      const matches = allUsers
+        .map(u => ({ ...u, score: getMatchScore(u) }))
+        .filter(u => u.score > 0)
+        .sort((a, b) => b.score - a.score);
+
+      if (!matches.length) {
+        grid.innerHTML = `<div class="empty-state"><div class="icon">🔎</div><p>No matches yet. Add more skills to your profile!</p></div>`;
+        return;
+      }
+
+      grid.innerHTML = matches.map(u => buildUserCard(u, true)).join('');
+    }
+
+    // ─── BUILD USER CARD HTML ────────────────────────────────────
+    function buildUserCard(u, isMatch) {
+      const teach = (u.teach || []).slice(0, 4);
+      const learn = (u.learn || []).slice(0, 4);
+      const isOnline = (Date.now() - (u.lastSeen || 0)) < 5 * 60 * 1000; // 5 min window
+
+      return `
+    <div class="user-card ${isMatch ? 'match-highlight' : ''}">
+      <div class="card-head">
+        <div class="avatar">${getInitials(u.username)}</div>
+        <div>
+          <div class="card-name">${u.username}</div>
+          <div class="card-meta">${isOnline ? '🟢 online' : '⚪ offline'}</div>
+        </div>
+        ${isMatch ? `<span class="match-badge">★ match</span>` : ''}
+      </div>
+
+      ${teach.length ? `
+        <div class="card-section-label">Can teach</div>
+        <div class="tags-list">
+          ${teach.map(t => `<span class="tag teach">${t}</span>`).join('')}
+        </div>
+      ` : ''}
+
+      ${learn.length ? `
+        <div class="card-section-label">Wants to learn</div>
+        <div class="tags-list">
+          ${learn.map(t => `<span class="tag learn">${t}</span>`).join('')}
+        </div>
+      ` : ''}
+
+      <div class="card-actions">
+        <button class="btn-card primary" onclick="openChat('${u.id}', '${u.username}')">Chat</button>
+      </div>
+    </div>
+  `;
+    }
+
+    // ─── CHAT SYSTEM ──────────────────────────────────────────────
+    // Chat rooms are stored at: chats/{roomId}/messages/{msgId}
+    // roomId = sorted pair of user IDs joined by '_'
+    function getRoomId(uid1, uid2) {
+      return [uid1, uid2].sort().join('_');
+    }
+
+    function openChat(userId, username) {
+      activeChatUser = { id: userId, username };
+      showPage('chat');
+      renderChatWindow();
+      renderChatList();
+    }
+
+    function renderChatList() {
+      const container = document.getElementById('chat-people-list');
+      if (!allUsers.length) {
+        container.innerHTML = `<div style="padding:16px; color:var(--muted); font-size:12px;">No members yet</div>`;
+        return;
+      }
+      container.innerHTML = allUsers.map(u => `
+    <div class="chat-person ${activeChatUser?.id === u.id ? 'active' : ''}"
+         onclick="openChat('${u.id}', '${u.username}')">
+      <div class="avatar" style="width:30px;height:30px;font-size:11px;">${getInitials(u.username)}</div>
+      <div>
+        <div class="chat-person-name">${u.username}</div>
+      </div>
+      ${(Date.now() - (u.lastSeen || 0)) < 300000
+          ? `<div class="online-dot" title="Online"></div>`
+          : ''}
+    </div>
+  `).join('');
+    }
+
+    function renderChatWindow() {
+      const win = document.getElementById('chat-window');
+      if (!activeChatUser) return;
+
+      win.innerHTML = `
+    <div class="chat-window-head">
+      <div class="avatar" style="width:32px;height:32px;font-size:12px;">${getInitials(activeChatUser.username)}</div>
+      <div class="name">${activeChatUser.username}</div>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-bar">
+      <input id="msg-input" type="text" placeholder="Type a message…" />
+      <button class="btn-send" onclick="sendMessage()">Send</button>
+    </div>
+  `;
+
+      document.getElementById('msg-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') sendMessage();
+      });
+
+      // Subscribe to this chat room's messages
+      if (chatUnsubscribe) chatUnsubscribe();
+      const roomId = getRoomId(currentUser.id, activeChatUser.id);
+
+      chatUnsubscribe = db.collection('chats').doc(roomId)
+        .collection('messages')
+        .orderBy('ts')
+        .onSnapshot(snapshot => {
+          const container = document.getElementById('chat-messages');
+          if (!container) return;
+          container.innerHTML = snapshot.docs.map(d => {
+            const m = d.data();
+            const mine = m.senderId === currentUser.id;
+            return `
+          <div class="message ${mine ? 'mine' : 'theirs'}">
+            ${!mine ? `<div class="msg-sender">${m.senderName}</div>` : ''}
+            ${m.text}
+            <div class="msg-time">${timeAgo(m.ts)}</div>
+          </div>
+        `;
+          }).join('');
+          // Auto-scroll to bottom
+          container.scrollTop = container.scrollHeight;
+        });
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('msg-input');
+      const text = input?.value.trim();
+      if (!text || !activeChatUser) return;
+
+      input.value = '';
+      const roomId = getRoomId(currentUser.id, activeChatUser.id);
+
+      await db.collection('chats').doc(roomId).collection('messages').add({
+        text,
+        senderId: currentUser.id,
+        senderName: currentUser.username,
+        ts: Date.now()
+      });
+    }
+
+    // ─── PROFILE PAGE ─────────────────────────────────────────────
+    const profileTags = { teach: [], learn: [] };
+
+    function renderProfile() {
+      if (!currentUser) return;
+      document.getElementById('profile-username').textContent = currentUser.username;
+      document.getElementById('profile-avatar').textContent = getInitials(currentUser.username);
+      profileTags.teach = [...(currentUser.teach || [])];
+      profileTags.learn = [...(currentUser.learn || [])];
+      renderProfileTags('teach');
+      renderProfileTags('learn');
+    }
+
+    function profileAddTag(type) {
+      const input = document.getElementById(`profile-${type}-input`);
+      const val = input.value.trim();
+      if (!val) return;
+      if (!profileTags[type].includes(val)) {
+        profileTags[type].push(val);
+        renderProfileTags(type);
+      }
+      input.value = '';
+    }
+
+    function profileRemoveTag(type, tag) {
+      profileTags[type] = profileTags[type].filter(t => t !== tag);
+      renderProfileTags(type);
+    }
+
+    function renderProfileTags(type) {
+      const container = document.getElementById(`profile-${type}-tags`);
+      container.innerHTML = profileTags[type].map(tag =>
+        `<span class="tag ${type}">${tag}
+       <button class="tag-remove" onclick="profileRemoveTag('${type}','${tag}')">×</button>
+     </span>`
+      ).join('');
+    }
+
+    // Enter key support for profile tag inputs
+    document.getElementById('profile-teach-input').addEventListener('keydown', e => { if (e.key === 'Enter') profileAddTag('teach'); });
+    document.getElementById('profile-learn-input').addEventListener('keydown', e => { if (e.key === 'Enter') profileAddTag('learn'); });
+
+    async function saveProfile() {
+      if (!currentUser) return;
+      await db.collection('users').doc(currentUser.id).update({
+        teach: profileTags.teach,
+        learn: profileTags.learn,
+        lastSeen: Date.now()
+      });
+      currentUser.teach = [...profileTags.teach];
+      currentUser.learn = [...profileTags.learn];
+      toast('Profile saved!');
+    }
+
+    // ─── BOOT ─────────────────────────────────────────────────────
+    restoreSession();
+  </script>
+</body>
+
+</html>

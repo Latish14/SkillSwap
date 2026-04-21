@@ -30,50 +30,6 @@ Data is stored in Firebase Firestore
 Users can explore other profiles
 Matching system suggests relevant users
 Users can start real-time chat
-🔥 Getting Started
-1. Clone the repository
-git clone https://github.com/yourusername/skillswap.git
-cd skillswap
-2. Setup Firebase
-Go to Firebase Console
-Create a project
-Add a Web App
-Copy your Firebase config
-
-Replace this in index.html:
-
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
-3. Enable Firestore
-Go to Firestore Database
-Start in Test Mode
-4. Run the Project
-
-Simply open:
-
-index.html
-🌍 Deployment
-
-You can deploy the project using:
-
-GitHub Pages
-Vercel
-
-After deployment, users can access the app via a public link.
-
-⚠️ Note
-
-Firestore rules are set to allow open access for demo purposes:
-
-allow read, write: if true;
-
-⚠️ Not recommended for production use.
 
 🚀 Future Improvements
 Video calling feature
